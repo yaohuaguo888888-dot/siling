@@ -1,0 +1,13 @@
+{
+    "name": "siling-social-app",
+    "version": "1.0.0",
+    "description": "思灵 - AI社交模拟Web应用，支持多个AI角色和即时聊天",
+    "main": "index.html",
+    "scripts": {
+        "test": "node tests/test.js",
+        "start": "npx http-server . -p 3000 -o"
+    },
+    "keywords": ["social", "ai", "chat", "simulation"],
+    "author": "",
+    "license": "MIT"
+}

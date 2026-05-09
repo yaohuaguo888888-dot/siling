@@ -1,0 +1,180 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <title>思灵社交App - 单元测试</title>
+    <style>
+        body { font-family: monospace; padding: 20px; background: #1a1a2e; color: #e0e0e0; }
+        .pass { color: #4caf50; }
+        .fail { color: #f44336; }
+        .info { color: #2196f3; }
+        .section { margin: 15px 0; padding: 10px; border-left: 3px solid #444; }
+        h2 { color: #ffc107; }
+        .summary { margin-top: 20px; padding: 15px; border: 2px solid; border-radius: 8px; }
+        .summary.all-pass { border-color: #4caf50; background: rgba(76,175,80,0.1); }
+        .summary.has-fail { border-color: #f44336; background: rgba(244,67,54,0.1); }
+    </style>
+</head>
+<body>
+    <h1>🧪 思灵社交App - 自动化测试</h1>
+    <div id="results"></div>
+
+    <script src="../js/characters.js"></script>
+    <script src="../js/chat.js"></script>
+    <script>
+        let passed = 0;
+        let failed = 0;
+        const results = document.getElementById('results');
+
+        function log(message, type = 'info') {
+            const p = document.createElement('p');
+            p.className = type;
+            p.textContent = message;
+            results.appendChild(p);
+        }
+
+        function section(title) {
+            const div = document.createElement('div');
+            div.className = 'section';
+            const h = document.createElement('h2');
+            h.textContent = title;
+            div.appendChild(h);
+            results.appendChild(div);
+            return div;
+        }
+
+        function assert(condition, description) {
+            if (condition) {
+                passed++;
+                log(`  ✅ PASS: ${description}`, 'pass');
+            } else {
+                failed++;
+                log(`  ❌ FAIL: ${description}`, 'fail');
+            }
+        }
+
+        // ========== 角色模块测试 ==========
+        section('📋 角色模块测试');
+
+        assert(AI_CHARACTERS.length === 5, '应有5个AI角色');
+        assert(typeof getCharacterById === 'function', 'getCharacterById函数存在');
+        assert(typeof getAllCharacters === 'function', 'getAllCharacters函数存在');
+
+        const xiaowei = getCharacterById('xiaowei');
+        assert(xiaowei !== undefined, '能通过ID找到小薇');
+        assert(xiaowei.name === '小薇', '小薇的名字正确');
+        assert(xiaowei.personality === '温柔体贴', '小薇的性格正确');
+        assert(Array.isArray(xiaowei.greetings), '小薇有打招呼语');
+        assert(xiaowei.greetings.length > 0, '打招呼语不为空');
+
+        const allChars = getAllCharacters();
+        assert(allChars.length === 5, 'getAllCharacters返回全部角色');
+
+        const nonExist = getCharacterById('nobody');
+        assert(nonExist === undefined, '查找不存在的角色返回undefined');
+
+        // 验证所有角色结构完整
+        AI_CHARACTERS.forEach(char => {
+            assert(char.id && char.name && char.avatar && char.responses, `角色 ${char.name} 结构完整`);
+            assert(char.responses.happy && char.responses.sad && char.responses.question && char.responses.general,
+                `角色 ${char.name} 有全部情感回复`);
+        });
+
+        // ========== 聊天引擎测试 ==========
+        section('💬 聊天引擎测试');
+
+        assert(chatEngine instanceof ChatEngine, 'chatEngine实例存在');
+
+        // 情感分析测试
+        assert(chatEngine.analyzeSentiment('我今天好开心啊') === 'happy', '识别开心情感');
+        assert(chatEngine.analyzeSentiment('好难过想哭') === 'sad', '识别悲伤情感');
+        assert(chatEngine.analyzeSentiment('你觉得怎么样呢？') === 'question', '识别提问');
+        assert(chatEngine.analyzeSentiment('今天天气不错') === 'general', '识别一般消息');
+        assert(chatEngine.analyzeSentiment('我太高兴了哈哈哈') === 'happy', '多关键词强化识别');
+
+        // 消息发送测试
+        const result = chatEngine.sendMessage('xiaowei', '你好呀');
+        assert(result.userMsg !== undefined, '发送消息返回用户消息');
+        assert(result.aiMsg !== undefined, '发送消息返回AI回复');
+        assert(result.userMsg.type === 'user', '用户消息类型正确');
+        assert(result.aiMsg.type === 'ai', 'AI消息类型正确');
+        assert(result.userMsg.content === '你好呀', '用户消息内容正确');
+        assert(result.aiMsg.content.length > 0, 'AI回复不为空');
+
+        // 聊天历史测试
+        const history = chatEngine.getHistory('xiaowei');
+        assert(history.length >= 2, '聊天历史记录正确');
+
+        // 打招呼测试
+        const greeting = chatEngine.getGreeting('laowang');
+        assert(greeting !== null, '能获取打招呼消息');
+        assert(greeting.type === 'ai', '打招呼消息类型正确');
+        assert(greeting.content.length > 0, '打招呼内容不为空');
+
+        // 消息预览测试
+        const preview = chatEngine.getLastMessagePreview('xiaowei');
+        assert(preview !== null, '能获取最后消息预览');
+        assert(preview.content.length > 0, '预览内容不为空');
+        assert(preview.time.length > 0, '预览时间不为空');
+
+        // 回复多样性测试
+        const responses = new Set();
+        for (let i = 0; i < 20; i++) {
+            const r = chatEngine.generateResponse('xiaohei', '你好');
+            responses.add(r);
+        }
+        assert(responses.size > 1, 'AI回复具有多样性');
+
+        // ID生成唯一性测试
+        const ids = new Set();
+        for (let i = 0; i < 100; i++) {
+            ids.add(chatEngine.generateId());
+        }
+        assert(ids.size === 100, '生成的ID具有唯一性');
+
+        // 时间格式测试
+        const timeStr = chatEngine.formatTime(new Date(2024, 0, 1, 9, 5));
+        assert(timeStr === '09:05', '时间格式化正确');
+
+        // ========== 边界条件测试 ==========
+        section('🔒 边界条件测试');
+
+        assert(chatEngine.generateResponse('nonexist', 'hello') === '...', '不存在角色返回默认回复');
+        assert(chatEngine.getGreeting('nonexist') === null, '不存在角色打招呼返回null');
+        assert(chatEngine.getHistory('newchar').length === 0, '新角色历史为空数组');
+        assert(chatEngine.getLastMessagePreview('newchar') === null, '新角色预览为null');
+
+        // 空消息情感分析
+        assert(chatEngine.analyzeSentiment('') === 'general', '空消息返回general');
+
+        // 长消息处理
+        const longMsg = '哈'.repeat(1000);
+        const longResult = chatEngine.sendMessage('mengmeng', longMsg);
+        assert(longResult.userMsg.content === longMsg, '长消息能正确存储');
+
+        // 特殊字符处理
+        const specialMsg = '<script>alert("xss")</script>';
+        const specialResult = chatEngine.sendMessage('dashi', specialMsg);
+        assert(specialResult.userMsg.content === specialMsg, '特殊字符能正确存储');
+
+        // ========== 测试汇总 ==========
+        const total = passed + failed;
+        const summaryDiv = document.createElement('div');
+        summaryDiv.className = `summary ${failed === 0 ? 'all-pass' : 'has-fail'}`;
+        summaryDiv.innerHTML = `
+            <h2>📊 测试结果汇总</h2>
+            <p>总计: ${total} 个测试</p>
+            <p class="pass">通过: ${passed} ✅</p>
+            <p class="${failed > 0 ? 'fail' : 'pass'}">失败: ${failed} ${failed > 0 ? '❌' : '✅'}</p>
+            <p><strong>${failed === 0 ? '🎉 全部测试通过！' : '⚠️ 存在失败的测试'}</strong></p>
+        `;
+        results.appendChild(summaryDiv);
+
+        // 输出到控制台供自动化使用
+        console.log(`TEST_RESULTS: ${passed}/${total} passed, ${failed} failed`);
+        if (failed === 0) {
+            console.log('ALL_TESTS_PASSED');
+        }
+    </script>
+</body>
+</html>
