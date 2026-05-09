@@ -1,0 +1,59 @@
+{
+  "sessionId": "becf5e08-8db4-4f07-8d26-4d80a34f7843",
+  "businessScopeId": "0f744b24-65b4-4197-814d-9d19598fa1b3",
+  "configVersion": 14,
+  "agentId": null,
+  "provisionedAt": "2026-05-09T12:19:25.886Z",
+  "lastSyncedAt": "2026-05-09T12:19:25.886Z",
+  "agents": [
+    {
+      "id": "642b7c8b-4ca7-496c-b49c-98871a53b75d",
+      "name": "test-engineer"
+    },
+    {
+      "id": "06e74780-4a34-437b-86f3-1a6b31fdc529",
+      "name": "code-reviewer"
+    },
+    {
+      "id": "e2b29e5f-f9de-4f76-8e65-5fd970749939",
+      "name": "engineering-lead"
+    }
+  ],
+  "skills": [
+    {
+      "id": "778ed0c0-3e9a-44b3-8729-0b80c6f2cf9c",
+      "name": "write-tests",
+      "hashId": "bbc0f1aecd4659e1"
+    },
+    {
+      "id": "e1e339a0-7c31-443e-9b19-abba5a43bee9",
+      "name": "run-and-diagnose",
+      "hashId": "8bbd78d8cb796c11"
+    },
+    {
+      "id": "d26cec6c-48da-44df-8ca5-4e34c4dd2ec6",
+      "name": "deep-review",
+      "hashId": "5167d74f8774914d"
+    },
+    {
+      "id": "f9c449d6-abfe-442a-a499-61631deed150",
+      "name": "architecture-check",
+      "hashId": "357d681f15dd934e"
+    },
+    {
+      "id": "bbabc038-d197-4448-80a1-1f16ff6f372e",
+      "name": "pull-and-analyze",
+      "hashId": "64e898bc2ed97559"
+    },
+    {
+      "id": "604bf033-0f2f-49c0-b509-7149f5d0dfb6",
+      "name": "code-generation",
+      "hashId": "67afbbee0c2537e1"
+    },
+    {
+      "id": "bd021514-7dec-4b88-a2d7-fa731524fd89",
+      "name": "summarize-and-submit",
+      "hashId": "6ed9e3b6e709f032"
+    }
+  ]
+}
