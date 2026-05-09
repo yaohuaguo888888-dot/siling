@@ -23,6 +23,7 @@ class SocialApp {
         this.chatAvatar = document.getElementById('chat-avatar');
         this.chatStatus = document.getElementById('chat-status');
         this.searchInput = document.getElementById('search-input');
+        this.tabBar = document.getElementById('tab-bar');
 
         this.init();
     }
@@ -75,7 +76,7 @@ class SocialApp {
      * 绑定所有事件监听
      */
     bindEvents() {
-        // 联系人点击
+        // 联系人点击 → 进入聊天
         this.contactsList.addEventListener('click', (e) => {
             const contactItem = e.target.closest('.contact-item');
             if (contactItem) {
@@ -113,54 +114,56 @@ class SocialApp {
             this.renderContactsList(e.target.value.trim());
         });
 
-        // Tab导航点击
-        document.querySelectorAll('.tab-item').forEach(tab => {
-            tab.addEventListener('click', (e) => {
-                const tabName = e.currentTarget.dataset.tab;
+        // 底部Tab点击
+        this.tabBar.addEventListener('click', (e) => {
+            const tabItem = e.target.closest('.tab-item');
+            if (tabItem) {
+                const tabName = tabItem.dataset.tab;
                 this.switchTab(tabName);
-            });
+            }
         });
 
-        // 朋友圈评论更新事件
+        // 朋友圈事件委托（点赞、评论）
+        this.momentsList.addEventListener('click', (e) => {
+            this.handleMomentsClick(e);
+        });
+
+        // 监听AI评论回复事件
         window.addEventListener('moments-comment-update', (e) => {
             const { momentId } = e.detail;
             this.updateMomentComments(momentId);
         });
-
-        // 朋友圈动态列表事件委托
-        this.momentsList.addEventListener('click', (e) => {
-            this.handleMomentsClick(e);
-        });
     }
 
+    // ==================== Tab切换 ====================
+
     /**
-     * 切换Tab页面
-     * @param {string} tabName - 目标Tab名称 ('contacts' 或 'moments')
+     * 切换底部Tab页面
+     * @param {string} tabName - 'contacts' 或 'moments'
      */
     switchTab(tabName) {
         if (tabName === this.currentTab) return;
-
         this.currentTab = tabName;
 
-        // 更新所有Tab状态
-        document.querySelectorAll('.tab-item').forEach(tab => {
-            if (tab.dataset.tab === tabName) {
-                tab.classList.add('active');
-            } else {
-                tab.classList.remove('active');
-            }
+        // 更新Tab激活状态
+        this.tabBar.querySelectorAll('.tab-item').forEach(tab => {
+            tab.classList.toggle('active', tab.dataset.tab === tabName);
         });
 
-        // 切换页面显示
+        // 隐藏所有非聊天页
+        this.contactsPage.classList.remove('active');
+        this.momentsPage.classList.remove('active');
+
+        // 显示目标页
         if (tabName === 'contacts') {
-            this.momentsPage.classList.remove('active');
             this.contactsPage.classList.add('active');
         } else if (tabName === 'moments') {
-            this.contactsPage.classList.remove('active');
             this.momentsPage.classList.add('active');
             this.renderMomentsList();
         }
     }
+
+    // ==================== 朋友圈功能 ====================
 
     /**
      * 渲染朋友圈动态列表
@@ -173,7 +176,7 @@ class SocialApp {
             if (!character) return '';
 
             const likedClass = moment.liked ? 'liked' : '';
-            const likeText = moment.liked ? '已赞' : '赞';
+            const likeText = moment.liked ? '❤️ 已赞' : '🤍 赞';
             const commentsHtml = this.renderMomentComments(moment);
 
             return `
@@ -189,10 +192,10 @@ class SocialApp {
                     </div>
                     <div class="moment-content">${this.escapeHtml(moment.content)}</div>
                     <div class="moment-actions">
-                        <span class="moment-likes">${moment.likes > 0 ? moment.likes + ' 人觉得很赞' : ''}</span>
+                        <span class="moment-likes">${moment.likes > 0 ? '❤️ ' + moment.likes : ''}</span>
                         <div class="moment-action-btns">
                             <button class="moment-action-btn ${likedClass}" data-action="like" data-moment-id="${moment.id}">
-                                ❤ ${likeText}
+                                ${likeText}
                             </button>
                             <button class="moment-action-btn" data-action="comment" data-moment-id="${moment.id}">
                                 💬 评论
@@ -210,29 +213,27 @@ class SocialApp {
     }
 
     /**
-     * 渲染单条动态的评论区域
+     * 渲染单条动态的评论
      * @param {Object} moment - 动态对象
-     * @returns {string} 评论区HTML
+     * @returns {string} HTML
      */
     renderMomentComments(moment) {
         if (!moment.commentList || moment.commentList.length === 0) {
             return '<div class="moment-comments"></div>';
         }
 
-        const commentsItems = moment.commentList.map(comment => {
-            return `
-                <div class="moment-comment-item">
-                    <span class="comment-author">${this.escapeHtml(comment.author)}</span>：<span class="comment-content">${this.escapeHtml(comment.content)}</span>
-                </div>
-            `;
-        }).join('');
+        const items = moment.commentList.map(comment => `
+            <div class="moment-comment-item">
+                <span class="comment-author">${this.escapeHtml(comment.author)}</span>：<span class="comment-content">${this.escapeHtml(comment.content)}</span>
+            </div>
+        `).join('');
 
-        return `<div class="moment-comments">${commentsItems}</div>`;
+        return `<div class="moment-comments">${items}</div>`;
     }
 
     /**
-     * 处理朋友圈列表的点击事件
-     * @param {Event} e - 点击事件
+     * 处理朋友圈内的点击
+     * @param {Event} e
      */
     handleMomentsClick(e) {
         const target = e.target.closest('[data-action]');
@@ -251,47 +252,42 @@ class SocialApp {
     }
 
     /**
-     * 处理朋友圈点赞
-     * @param {string} momentId - 动态ID
+     * 处理点赞
      */
     handleMomentLike(momentId) {
         const result = momentsEngine.toggleLike(momentId);
         if (!result) return;
 
-        // 更新UI
-        const momentItem = this.momentsList.querySelector(`[data-moment-id="${momentId}"].moment-item`);
+        const momentItem = this.momentsList.querySelector(`.moment-item[data-moment-id="${momentId}"]`);
         if (!momentItem) return;
 
         const likeBtn = momentItem.querySelector('[data-action="like"]');
-        const likesText = momentItem.querySelector('.moment-likes');
+        const likesSpan = momentItem.querySelector('.moment-likes');
 
         if (result.liked) {
             likeBtn.classList.add('liked');
-            likeBtn.innerHTML = '❤ 已赞';
+            likeBtn.textContent = '❤️ 已赞';
         } else {
             likeBtn.classList.remove('liked');
-            likeBtn.innerHTML = '❤ 赞';
+            likeBtn.textContent = '🤍 赞';
         }
 
-        likesText.textContent = result.likes > 0 ? result.likes + ' 人觉得很赞' : '';
+        likesSpan.textContent = result.likes > 0 ? '❤️ ' + result.likes : '';
     }
 
     /**
-     * 切换评论输入框显示
-     * @param {string} momentId - 动态ID
+     * 切换评论输入框
      */
     toggleCommentInput(momentId) {
-        const momentItem = this.momentsList.querySelector(`[data-moment-id="${momentId}"].moment-item`);
+        const momentItem = this.momentsList.querySelector(`.moment-item[data-moment-id="${momentId}"]`);
         if (!momentItem) return;
 
-        const inputWrapper = momentItem.querySelector('.moment-comment-input-wrapper');
-        inputWrapper.classList.toggle('show');
+        const wrapper = momentItem.querySelector('.moment-comment-input-wrapper');
+        wrapper.classList.toggle('show');
 
-        if (inputWrapper.classList.contains('show')) {
-            const input = inputWrapper.querySelector('.moment-comment-input');
+        if (wrapper.classList.contains('show')) {
+            const input = wrapper.querySelector('.moment-comment-input');
             input.focus();
-
-            // 绑定回车发送
             input.onkeydown = (e) => {
                 if (e.key === 'Enter') {
                     e.preventDefault();
@@ -302,57 +298,48 @@ class SocialApp {
     }
 
     /**
-     * 处理朋友圈评论提交
-     * @param {string} momentId - 动态ID
+     * 提交评论
      */
     handleMomentComment(momentId) {
-        const momentItem = this.momentsList.querySelector(`[data-moment-id="${momentId}"].moment-item`);
+        const momentItem = this.momentsList.querySelector(`.moment-item[data-moment-id="${momentId}"]`);
         if (!momentItem) return;
 
         const input = momentItem.querySelector('.moment-comment-input');
         const content = input.value.trim();
         if (!content) return;
 
-        // 添加评论到数据层
         const comment = momentsEngine.addComment(momentId, content);
         if (!comment) return;
 
-        // 清空输入框
         input.value = '';
-
-        // 更新评论UI
         this.updateMomentComments(momentId);
     }
 
     /**
-     * 更新某条动态的评论显示
-     * @param {string} momentId - 动态ID
+     * 更新某条动态的评论区
      */
     updateMomentComments(momentId) {
-        const momentItem = this.momentsList.querySelector(`[data-moment-id="${momentId}"].moment-item`);
+        const momentItem = this.momentsList.querySelector(`.moment-item[data-moment-id="${momentId}"]`);
         if (!momentItem) return;
 
         const moment = momentsEngine.getMomentById(momentId);
         if (!moment) return;
 
-        // 替换评论区域
         const oldComments = momentItem.querySelector('.moment-comments');
-        const newCommentsHtml = this.renderMomentComments(moment);
+        const newHtml = this.renderMomentComments(moment);
         const temp = document.createElement('div');
-        temp.innerHTML = newCommentsHtml;
+        temp.innerHTML = newHtml;
         const newComments = temp.firstElementChild;
 
         if (oldComments) {
             oldComments.replaceWith(newComments);
-        } else {
-            const inputWrapper = momentItem.querySelector('.moment-comment-input-wrapper');
-            momentItem.insertBefore(newComments, inputWrapper);
         }
     }
 
+    // ==================== 聊天功能 ====================
+
     /**
      * 打开聊天页面
-     * @param {string} characterId - 角色ID
      */
     openChat(characterId) {
         const character = getCharacterById(characterId);
@@ -360,7 +347,7 @@ class SocialApp {
 
         this.currentCharacterId = characterId;
 
-        // 更新头部信息
+        // 更新聊天头部
         this.chatName.textContent = character.name;
         this.chatAvatar.src = this.createAvatarDataUrl(character.avatar, character.avatarBg);
         this.chatStatus.textContent = character.status;
@@ -378,11 +365,12 @@ class SocialApp {
             }
         }
 
-        // 切换页面
+        // 显示聊天页，隐藏tab
         this.contactsPage.classList.remove('active');
+        this.momentsPage.classList.remove('active');
         this.chatPage.classList.add('active');
+        this.tabBar.classList.add('hidden');
 
-        // 聚焦输入框
         setTimeout(() => this.messageInput.focus(), 300);
     }
 
@@ -392,10 +380,15 @@ class SocialApp {
     closeChat() {
         this.currentCharacterId = null;
         this.chatPage.classList.remove('active');
-        this.contactsPage.classList.add('active');
+        this.tabBar.classList.remove('hidden');
 
-        // 刷新联系人列表预览
-        this.renderContactsList(this.searchInput.value.trim());
+        // 恢复之前的tab页
+        if (this.currentTab === 'contacts') {
+            this.contactsPage.classList.add('active');
+            this.renderContactsList(this.searchInput.value.trim());
+        } else {
+            this.momentsPage.classList.add('active');
+        }
     }
 
     /**
@@ -405,21 +398,17 @@ class SocialApp {
         const message = this.messageInput.value.trim();
         if (!message || !this.currentCharacterId || this.isTyping) return;
 
-        // 清空输入框
         this.messageInput.value = '';
         this.messageInput.style.height = 'auto';
 
-        // 发送用户消息
         const { userMsg, aiMsg } = chatEngine.sendMessage(this.currentCharacterId, message);
 
-        // 渲染用户消息
         this.appendMessage(userMsg, 'self');
         this.scrollToBottom();
 
         // 模拟AI打字延迟
         this.showTypingIndicator();
-
-        const typingDelay = Math.random() * 1500 + 800; // 800ms - 2300ms
+        const typingDelay = Math.random() * 1500 + 800;
         setTimeout(() => {
             this.hideTypingIndicator();
             this.appendMessage(aiMsg, 'other');
@@ -429,7 +418,6 @@ class SocialApp {
 
     /**
      * 渲染所有消息
-     * @param {string} characterId - 角色ID
      */
     renderMessages(characterId) {
         const messages = chatEngine.getHistory(characterId);
@@ -440,7 +428,6 @@ class SocialApp {
             const avatarSrc = isUser
                 ? this.createAvatarDataUrl('🙂', '#E3F2FD')
                 : this.createAvatarDataUrl(character.avatar, character.avatarBg);
-
             return this.createMessageHTML(msg, isUser ? 'self' : 'other', avatarSrc);
         }).join('');
 
@@ -448,9 +435,7 @@ class SocialApp {
     }
 
     /**
-     * 追加单条消息到聊天区域
-     * @param {Object} msg - 消息对象
-     * @param {string} type - 'self' 或 'other'
+     * 追加消息
      */
     appendMessage(msg, type) {
         const character = getCharacterById(this.currentCharacterId);
@@ -467,13 +452,6 @@ class SocialApp {
         }
     }
 
-    /**
-     * 创建消息HTML
-     * @param {Object} msg - 消息对象
-     * @param {string} type - 'self' 或 'other'
-     * @param {string} avatarSrc - 头像URL
-     * @returns {string} HTML字符串
-     */
     createMessageHTML(msg, type, avatarSrc) {
         return `
             <div class="message ${type}">
@@ -486,9 +464,6 @@ class SocialApp {
         `;
     }
 
-    /**
-     * 显示正在输入指示器
-     */
     showTypingIndicator() {
         this.isTyping = true;
         const character = getCharacterById(this.currentCharacterId);
@@ -508,45 +483,31 @@ class SocialApp {
         this.scrollToBottom();
     }
 
-    /**
-     * 隐藏正在输入指示器
-     */
     hideTypingIndicator() {
         this.isTyping = false;
         const typingEl = this.messagesContainer.querySelector('.typing-message');
-        if (typingEl) {
-            typingEl.remove();
-        }
+        if (typingEl) typingEl.remove();
     }
 
-    /**
-     * 滚动到底部
-     */
     scrollToBottom() {
         setTimeout(() => {
             this.messagesContainer.scrollTop = this.messagesContainer.scrollHeight;
         }, 50);
     }
 
-    /**
-     * 创建emoji头像的Data URL
-     * @param {string} emoji - Emoji字符
-     * @param {string} bgColor - 背景颜色
-     * @returns {string} Data URL
-     */
+    // ==================== 工具方法 ====================
+
     createAvatarDataUrl(emoji, bgColor) {
         const canvas = document.createElement('canvas');
         canvas.width = 80;
         canvas.height = 80;
         const ctx = canvas.getContext('2d');
 
-        // 背景
         ctx.fillStyle = bgColor;
         ctx.beginPath();
         ctx.arc(40, 40, 40, 0, Math.PI * 2);
         ctx.fill();
 
-        // Emoji
         ctx.font = '40px Arial';
         ctx.textAlign = 'center';
         ctx.textBaseline = 'middle';
@@ -555,11 +516,6 @@ class SocialApp {
         return canvas.toDataURL();
     }
 
-    /**
-     * HTML转义，防止XSS
-     * @param {string} text - 原始文本
-     * @returns {string} 转义后的文本
-     */
     escapeHtml(text) {
         const div = document.createElement('div');
         div.textContent = text;

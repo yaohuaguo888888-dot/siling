@@ -2,13 +2,13 @@
 <html lang="zh-CN">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>思灵 - AI社交</title>
     <link rel="stylesheet" href="css/style.css">
 </head>
 <body>
     <div id="app">
-        <!-- 联系人列表页 -->
+        <!-- 消息页（联系人列表） -->
         <div id="contacts-page" class="page active">
             <header class="page-header">
                 <h1>思灵</h1>
@@ -17,42 +17,20 @@
             <div class="search-bar">
                 <input type="text" id="search-input" placeholder="搜索联系人...">
             </div>
-            <div id="contacts-list" class="contacts-list">
+            <div id="contacts-list" class="page-body">
                 <!-- 动态生成联系人列表 -->
             </div>
-            <!-- 底部Tab导航 -->
-            <nav class="tab-bar">
-                <div class="tab-item active" data-tab="contacts">
-                    <span class="tab-icon">💬</span>
-                    <span class="tab-label">消息</span>
-                </div>
-                <div class="tab-item" data-tab="moments">
-                    <span class="tab-icon">📷</span>
-                    <span class="tab-label">朋友圈</span>
-                </div>
-            </nav>
         </div>
 
-        <!-- 朋友圈页面 -->
+        <!-- 朋友圈页 -->
         <div id="moments-page" class="page">
             <header class="page-header">
                 <h1>朋友圈</h1>
                 <span class="subtitle">看看大家在做什么</span>
             </header>
-            <div id="moments-list" class="moments-list">
+            <div id="moments-list" class="page-body">
                 <!-- 动态生成朋友圈内容 -->
             </div>
-            <!-- 底部Tab导航 -->
-            <nav class="tab-bar">
-                <div class="tab-item" data-tab="contacts">
-                    <span class="tab-icon">💬</span>
-                    <span class="tab-label">消息</span>
-                </div>
-                <div class="tab-item active" data-tab="moments">
-                    <span class="tab-icon">📷</span>
-                    <span class="tab-label">朋友圈</span>
-                </div>
-            </nav>
         </div>
 
         <!-- 聊天页 -->
@@ -77,6 +55,18 @@
                 </div>
             </div>
         </div>
+
+        <!-- 全局底部Tab导航（聊天时隐藏） -->
+        <nav id="tab-bar" class="tab-bar">
+            <div class="tab-item active" data-tab="contacts">
+                <span class="tab-icon">💬</span>
+                <span class="tab-label">消息</span>
+            </div>
+            <div class="tab-item" data-tab="moments">
+                <span class="tab-icon">📷</span>
+                <span class="tab-label">朋友圈</span>
+            </div>
+        </nav>
     </div>
 
     <script src="js/characters.js"></script>
