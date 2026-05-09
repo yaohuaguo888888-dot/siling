@@ -7,11 +7,14 @@ class SocialApp {
     constructor() {
         this.currentCharacterId = null;
         this.isTyping = false;
+        this.currentTab = 'contacts';
 
         // DOM引用
         this.contactsPage = document.getElementById('contacts-page');
         this.chatPage = document.getElementById('chat-page');
+        this.momentsPage = document.getElementById('moments-page');
         this.contactsList = document.getElementById('contacts-list');
+        this.momentsList = document.getElementById('moments-list');
         this.messagesContainer = document.getElementById('messages-container');
         this.messageInput = document.getElementById('message-input');
         this.sendBtn = document.getElementById('send-btn');
@@ -109,6 +112,242 @@ class SocialApp {
         this.searchInput.addEventListener('input', (e) => {
             this.renderContactsList(e.target.value.trim());
         });
+
+        // Tab导航点击
+        document.querySelectorAll('.tab-item').forEach(tab => {
+            tab.addEventListener('click', (e) => {
+                const tabName = e.currentTarget.dataset.tab;
+                this.switchTab(tabName);
+            });
+        });
+
+        // 朋友圈评论更新事件
+        window.addEventListener('moments-comment-update', (e) => {
+            const { momentId } = e.detail;
+            this.updateMomentComments(momentId);
+        });
+
+        // 朋友圈动态列表事件委托
+        this.momentsList.addEventListener('click', (e) => {
+            this.handleMomentsClick(e);
+        });
+    }
+
+    /**
+     * 切换Tab页面
+     * @param {string} tabName - 目标Tab名称 ('contacts' 或 'moments')
+     */
+    switchTab(tabName) {
+        if (tabName === this.currentTab) return;
+
+        this.currentTab = tabName;
+
+        // 更新所有Tab状态
+        document.querySelectorAll('.tab-item').forEach(tab => {
+            if (tab.dataset.tab === tabName) {
+                tab.classList.add('active');
+            } else {
+                tab.classList.remove('active');
+            }
+        });
+
+        // 切换页面显示
+        if (tabName === 'contacts') {
+            this.momentsPage.classList.remove('active');
+            this.contactsPage.classList.add('active');
+        } else if (tabName === 'moments') {
+            this.contactsPage.classList.remove('active');
+            this.momentsPage.classList.add('active');
+            this.renderMomentsList();
+        }
+    }
+
+    /**
+     * 渲染朋友圈动态列表
+     */
+    renderMomentsList() {
+        const moments = momentsEngine.getAllMoments();
+
+        this.momentsList.innerHTML = moments.map(moment => {
+            const character = getCharacterById(moment.characterId);
+            if (!character) return '';
+
+            const likedClass = moment.liked ? 'liked' : '';
+            const likeText = moment.liked ? '已赞' : '赞';
+            const commentsHtml = this.renderMomentComments(moment);
+
+            return `
+                <div class="moment-item" data-moment-id="${moment.id}">
+                    <div class="moment-header">
+                        <div class="moment-avatar" style="background-color: ${character.avatarBg}">
+                            ${character.avatar}
+                        </div>
+                        <div class="moment-author-info">
+                            <div class="moment-author-name">${character.name}</div>
+                            <div class="moment-time">${moment.time}</div>
+                        </div>
+                    </div>
+                    <div class="moment-content">${this.escapeHtml(moment.content)}</div>
+                    <div class="moment-actions">
+                        <span class="moment-likes">${moment.likes > 0 ? moment.likes + ' 人觉得很赞' : ''}</span>
+                        <div class="moment-action-btns">
+                            <button class="moment-action-btn ${likedClass}" data-action="like" data-moment-id="${moment.id}">
+                                ❤ ${likeText}
+                            </button>
+                            <button class="moment-action-btn" data-action="comment" data-moment-id="${moment.id}">
+                                💬 评论
+                            </button>
+                        </div>
+                    </div>
+                    ${commentsHtml}
+                    <div class="moment-comment-input-wrapper" data-moment-id="${moment.id}">
+                        <input type="text" class="moment-comment-input" placeholder="写评论..." data-moment-id="${moment.id}">
+                        <button class="moment-comment-submit" data-action="submit-comment" data-moment-id="${moment.id}">发送</button>
+                    </div>
+                </div>
+            `;
+        }).join('');
+    }
+
+    /**
+     * 渲染单条动态的评论区域
+     * @param {Object} moment - 动态对象
+     * @returns {string} 评论区HTML
+     */
+    renderMomentComments(moment) {
+        if (!moment.commentList || moment.commentList.length === 0) {
+            return '<div class="moment-comments"></div>';
+        }
+
+        const commentsItems = moment.commentList.map(comment => {
+            return `
+                <div class="moment-comment-item">
+                    <span class="comment-author">${this.escapeHtml(comment.author)}</span>：<span class="comment-content">${this.escapeHtml(comment.content)}</span>
+                </div>
+            `;
+        }).join('');
+
+        return `<div class="moment-comments">${commentsItems}</div>`;
+    }
+
+    /**
+     * 处理朋友圈列表的点击事件
+     * @param {Event} e - 点击事件
+     */
+    handleMomentsClick(e) {
+        const target = e.target.closest('[data-action]');
+        if (!target) return;
+
+        const action = target.dataset.action;
+        const momentId = target.dataset.momentId;
+
+        if (action === 'like') {
+            this.handleMomentLike(momentId);
+        } else if (action === 'comment') {
+            this.toggleCommentInput(momentId);
+        } else if (action === 'submit-comment') {
+            this.handleMomentComment(momentId);
+        }
+    }
+
+    /**
+     * 处理朋友圈点赞
+     * @param {string} momentId - 动态ID
+     */
+    handleMomentLike(momentId) {
+        const result = momentsEngine.toggleLike(momentId);
+        if (!result) return;
+
+        // 更新UI
+        const momentItem = this.momentsList.querySelector(`[data-moment-id="${momentId}"].moment-item`);
+        if (!momentItem) return;
+
+        const likeBtn = momentItem.querySelector('[data-action="like"]');
+        const likesText = momentItem.querySelector('.moment-likes');
+
+        if (result.liked) {
+            likeBtn.classList.add('liked');
+            likeBtn.innerHTML = '❤ 已赞';
+        } else {
+            likeBtn.classList.remove('liked');
+            likeBtn.innerHTML = '❤ 赞';
+        }
+
+        likesText.textContent = result.likes > 0 ? result.likes + ' 人觉得很赞' : '';
+    }
+
+    /**
+     * 切换评论输入框显示
+     * @param {string} momentId - 动态ID
+     */
+    toggleCommentInput(momentId) {
+        const momentItem = this.momentsList.querySelector(`[data-moment-id="${momentId}"].moment-item`);
+        if (!momentItem) return;
+
+        const inputWrapper = momentItem.querySelector('.moment-comment-input-wrapper');
+        inputWrapper.classList.toggle('show');
+
+        if (inputWrapper.classList.contains('show')) {
+            const input = inputWrapper.querySelector('.moment-comment-input');
+            input.focus();
+
+            // 绑定回车发送
+            input.onkeydown = (e) => {
+                if (e.key === 'Enter') {
+                    e.preventDefault();
+                    this.handleMomentComment(momentId);
+                }
+            };
+        }
+    }
+
+    /**
+     * 处理朋友圈评论提交
+     * @param {string} momentId - 动态ID
+     */
+    handleMomentComment(momentId) {
+        const momentItem = this.momentsList.querySelector(`[data-moment-id="${momentId}"].moment-item`);
+        if (!momentItem) return;
+
+        const input = momentItem.querySelector('.moment-comment-input');
+        const content = input.value.trim();
+        if (!content) return;
+
+        // 添加评论到数据层
+        const comment = momentsEngine.addComment(momentId, content);
+        if (!comment) return;
+
+        // 清空输入框
+        input.value = '';
+
+        // 更新评论UI
+        this.updateMomentComments(momentId);
+    }
+
+    /**
+     * 更新某条动态的评论显示
+     * @param {string} momentId - 动态ID
+     */
+    updateMomentComments(momentId) {
+        const momentItem = this.momentsList.querySelector(`[data-moment-id="${momentId}"].moment-item`);
+        if (!momentItem) return;
+
+        const moment = momentsEngine.getMomentById(momentId);
+        if (!moment) return;
+
+        // 替换评论区域
+        const oldComments = momentItem.querySelector('.moment-comments');
+        const newCommentsHtml = this.renderMomentComments(moment);
+        const temp = document.createElement('div');
+        temp.innerHTML = newCommentsHtml;
+        const newComments = temp.firstElementChild;
+
+        if (oldComments) {
+            oldComments.replaceWith(newComments);
+        } else {
+            const inputWrapper = momentItem.querySelector('.moment-comment-input-wrapper');
+            momentItem.insertBefore(newComments, inputWrapper);
+        }
     }
 
     /**

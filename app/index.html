@@ -20,6 +20,39 @@
             <div id="contacts-list" class="contacts-list">
                 <!-- 动态生成联系人列表 -->
             </div>
+            <!-- 底部Tab导航 -->
+            <nav class="tab-bar">
+                <div class="tab-item active" data-tab="contacts">
+                    <span class="tab-icon">💬</span>
+                    <span class="tab-label">消息</span>
+                </div>
+                <div class="tab-item" data-tab="moments">
+                    <span class="tab-icon">📷</span>
+                    <span class="tab-label">朋友圈</span>
+                </div>
+            </nav>
+        </div>
+
+        <!-- 朋友圈页面 -->
+        <div id="moments-page" class="page">
+            <header class="page-header">
+                <h1>朋友圈</h1>
+                <span class="subtitle">看看大家在做什么</span>
+            </header>
+            <div id="moments-list" class="moments-list">
+                <!-- 动态生成朋友圈内容 -->
+            </div>
+            <!-- 底部Tab导航 -->
+            <nav class="tab-bar">
+                <div class="tab-item" data-tab="contacts">
+                    <span class="tab-icon">💬</span>
+                    <span class="tab-label">消息</span>
+                </div>
+                <div class="tab-item active" data-tab="moments">
+                    <span class="tab-icon">📷</span>
+                    <span class="tab-label">朋友圈</span>
+                </div>
+            </nav>
         </div>
 
         <!-- 聊天页 -->
@@ -48,6 +81,7 @@
 
     <script src="js/characters.js"></script>
     <script src="js/chat.js"></script>
+    <script src="js/moments.js"></script>
     <script src="js/app.js"></script>
 </body>
 </html>
