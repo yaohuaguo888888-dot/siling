@@ -33,11 +33,18 @@ body {
     max-width: 480px;
     margin: 0 auto;
     height: 100vh;
-    position: relative;
     background: var(--white);
     box-shadow: 0 0 20px rgba(0, 0, 0, 0.1);
     display: flex;
     flex-direction: column;
+    overflow: hidden;
+}
+
+/* 内容区域：包裹所有page，占据tab之外的空间 */
+.app-content {
+    flex: 1;
+    position: relative;
+    overflow: hidden;
 }
 
 /* ========== 页面切换 ========== */
@@ -46,35 +53,37 @@ body {
     top: 0;
     left: 0;
     width: 100%;
-    height: calc(100% - var(--tab-height));
+    height: 100%;
     display: none;
     flex-direction: column;
-    z-index: 1;
 }
 
 .page.active {
     display: flex;
 }
 
-/* 聊天页全屏，不留tab空间 */
+/* 聊天页需要覆盖tab区域 */
 #chat-page {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    max-width: 480px;
+    margin: 0 auto;
+    z-index: 100;
     height: 100%;
-    z-index: 10;
 }
 
 /* ========== 底部Tab导航 ========== */
 .tab-bar {
-    position: absolute;
-    bottom: 0;
-    left: 0;
-    right: 0;
     height: var(--tab-height);
     display: flex;
     align-items: center;
     justify-content: space-around;
     background: var(--white);
     border-top: 1px solid var(--border-color);
-    z-index: 5;
+    flex-shrink: 0;
 }
 
 .tab-bar.hidden {
